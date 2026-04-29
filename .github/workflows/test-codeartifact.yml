@@ -1,0 +1,52 @@
+name: Test CodeArtifact OIDC
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  test-codeartifact:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::219392389763:role/github-actions-codeartifact-test
+          aws-region: us-east-1
+
+      - name: Verify identity
+        run: aws sts get-caller-identity
+
+      - name: Get CodeArtifact authorization token
+        run: |
+          export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token \
+            --domain test-github-actions \
+            --domain-owner 219392389763 \
+            --region us-east-1 \
+            --query authorizationToken \
+            --output text)
+          echo "## CodeArtifact token obtained successfully (length: ${#CODEARTIFACT_AUTH_TOKEN})"
+
+      - name: Get repository endpoint
+        run: |
+          aws codeartifact get-repository-endpoint \
+            --domain test-github-actions \
+            --domain-owner 219392389763 \
+            --repository team-a-repo \
+            --format maven \
+            --region us-east-1
+
+      - name: List repositories
+        run: |
+          aws codeartifact list-repositories-in-domain \
+            --domain test-github-actions \
+            --domain-owner 219392389763 \
+            --region us-east-1
