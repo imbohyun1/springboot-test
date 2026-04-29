@@ -2,7 +2,7 @@ name: Test CodeArtifact OIDC
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, test]
   workflow_dispatch:
 
 permissions:
