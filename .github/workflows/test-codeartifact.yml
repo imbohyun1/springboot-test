@@ -20,6 +20,7 @@ jobs:
         run: |
           OIDC_TOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r '.value')
+          echo "=== OIDC Token Claims ==="
           echo "$OIDC_TOKEN" | cut -d'.' -f2 | base64 -d 2>/dev/null | jq .
 
       - name: Configure AWS Credentials (OIDC)
@@ -39,7 +40,15 @@ jobs:
             --region us-east-1 \
             --query authorizationToken \
             --output text)
-          echo "## CodeArtifact token obtained successfully (length: ${#CODEARTIFACT_AUTH_TOKEN})"
+          echo "✅ CodeArtifact token obtained successfully (length: ${#CODEARTIFACT_AUTH_TOKEN})"
+
+      - name: "TEST 1: ReadFromRepository (should succeed - RBP allows this repo via sub condition)"
+        run: |
+          aws codeartifact list-packages \
+            --domain test-github-actions \
+            --domain-owner 219392389763 \
+            --repository team-a-repo \
+            --region us-east-1 || echo "❌ FAILED: ReadFromRepository denied"
 
       - name: Get repository endpoint
         run: |
